@@ -14,7 +14,7 @@ type NumLayers = 1000
 
 newtype BoxedStack shape = BoxedStack (ReshapeStack NumLayers shape)
 
--- | The number of coercions scales exponentially in 'NumLayers':
+-- | The number of coercions scales constant in 'NumLayers':
 --
 -- ReshapeStack 0:  Result size of Desugar (before optimization)
 --                    = {terms: 97, types: 119, coercions: 51, joins: 0/2}
