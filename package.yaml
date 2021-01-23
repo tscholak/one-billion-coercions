@@ -1,0 +1,16 @@
+name:                one-billion-coercions
+version:             0.1
+
+ghc-options: -W -Wall -dcore-lint
+
+dependencies:
+  - base
+
+library:
+  source-dirs: src
+  dependencies:
+    - ghc >= 8.10.3 && < 8.11
+    - type-errors-pretty
+    - ghc-typelits-natnormalise
+    - ghc-typelits-knownnat
+    - ghc-typelits-extra

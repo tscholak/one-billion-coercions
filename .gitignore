@@ -1,0 +1,3 @@
+.stack-work/
+stack.yaml.lock
+one-billion-coercions.cabal
