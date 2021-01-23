@@ -238,19 +238,20 @@ instance
 class
   HasForwardReshapeStack
     (isCons :: Bool)
+    (isSecondLayer :: Bool)
     (numLayers :: Nat)
     (shape :: Maybe [Maybe Nat])
     inputShape
   where
-  type ForwardReshapeStackOutput isCons numLayers shape inputShape :: Type
+  type ForwardReshapeStackOutput isCons isSecondLayer numLayers shape inputShape :: Type
   forwardReshapeStack ::
     ReshapeStack numLayers shape ->
     Tensor inputShape ->
-    ForwardReshapeStackOutput isCons numLayers shape inputShape
+    ForwardReshapeStackOutput isCons isSecondLayer numLayers shape inputShape
 
-instance HasForwardReshapeStack 'False 0 shape inputShape where
+instance HasForwardReshapeStack 'False isSecondLayer 0 shape inputShape where
   type
-    ForwardReshapeStackOutput 'False 0 shape inputShape =
+    ForwardReshapeStackOutput 'False isSecondLayer 0 shape inputShape =
       Tensor inputShape
   forwardReshapeStack ReshapeStackNil input = input
 
@@ -258,24 +259,39 @@ instance
   ( KnownShape inputShape,
     WithShapeC shape (Tensor inputShape -> Tensor (ReshapeF inputShape shape)),
     WithShapeC inputShape (Tensor (ReshapeF inputShape shape) -> Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)),
-    HasForward (ReshapeStack (numLayers - 1) shape) (Tensor (ReshapeF (ReshapeF inputShape shape) inputShape))
+    HasForwardReshapeStack (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape)
   ) =>
-  HasForwardReshapeStack 'True numLayers shape inputShape
+  HasForwardReshapeStack 'True 'False numLayers shape inputShape
   where
   type
-    ForwardReshapeStackOutput 'True numLayers shape inputShape =
-      ForwardReshapeStackOutput (1 <=? numLayers - 1) (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape)
+    ForwardReshapeStackOutput 'True 'False numLayers shape inputShape =
+      ForwardReshapeStackOutput (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape)
   forwardReshapeStack (ReshapeStackCons block stack) input =
-    let reshaped :: Tensor (ReshapeF (ReshapeF inputShape shape) inputShape) = forward block input
-     in forward @(ReshapeStack (numLayers - 1) shape) stack reshaped
+    let reshaped = forward block input
+     in forwardReshapeStack @(1 <=? numLayers - 1) @'True @(numLayers - 1) @shape @(ReshapeF (ReshapeF inputShape shape) inputShape) stack reshaped
 
 instance
-  HasForwardReshapeStack (1 <=? numLayers) numLayers shape inputShape =>
+  ( KnownShape inputShape,
+    WithShapeC shape (Tensor inputShape -> Tensor (ReshapeF inputShape shape)),
+    WithShapeC inputShape (Tensor (ReshapeF inputShape shape) -> Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)),
+    HasForwardReshapeStack (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape),
+    ForwardReshapeStackOutput (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape) ~ Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)
+  ) =>
+  HasForwardReshapeStack 'True 'True numLayers shape inputShape
+  where
+  type
+    ForwardReshapeStackOutput 'True 'True numLayers shape inputShape = Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)
+  forwardReshapeStack (ReshapeStackCons block stack) input =
+    let reshaped = forward block input
+     in forwardReshapeStack @(1 <=? numLayers - 1) @'True @(numLayers - 1) @shape @(ReshapeF (ReshapeF inputShape shape) inputShape) stack reshaped
+
+instance
+  HasForwardReshapeStack (1 <=? numLayers) 'False numLayers shape inputShape =>
   HasForward
     (ReshapeStack numLayers shape)
     (Tensor inputShape)
   where
   type
     ForwardOutput (ReshapeStack numLayers shape) (Tensor inputShape) =
-      ForwardReshapeStackOutput (1 <=? numLayers) numLayers shape inputShape
-  forward = forwardReshapeStack @(1 <=? numLayers) @numLayers @shape @inputShape
+      ForwardReshapeStackOutput (1 <=? numLayers) 'False numLayers shape inputShape
+  forward = forwardReshapeStack @(1 <=? numLayers) @'False @numLayers @shape @inputShape
