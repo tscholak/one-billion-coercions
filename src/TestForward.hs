@@ -8,7 +8,7 @@ module TestForward where
 
 import Coercions (HasForward (..), HasInitialize (..), ReshapeStack, Tensor (..))
 
-type NumLayers = 1
+type NumLayers = 1000
 
 -- | The number of coercions scales linearly in 'NumLayers':
 --

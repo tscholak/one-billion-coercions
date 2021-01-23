@@ -23,6 +23,7 @@ import Data.Kind (Type)
 import GHC.TypeLits (KnownNat, natVal, Nat, type (*), type (+), type (-), type (<=?))
 import Type.Errors.Pretty (TypeError, type (%), type (<>))
 import Data.Proxy (Proxy(..))
+import Data.Coerce (coerce)
 
 class HasForward f a where
   type ForwardOutput f a :: Type
@@ -258,8 +259,9 @@ instance HasForwardReshapeStack 'False isSecondLayer 0 shape inputShape where
 instance
   ( KnownShape inputShape,
     WithShapeC shape (Tensor inputShape -> Tensor (ReshapeF inputShape shape)),
-    WithShapeC inputShape (Tensor (ReshapeF inputShape shape) -> Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)),
-    HasForwardReshapeStack (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape)
+    WithShapeC inputShape (Tensor (ReshapeF inputShape shape) -> Tensor outputShape),
+    outputShape ~ ReshapeF (ReshapeF inputShape shape) inputShape,
+    HasForwardReshapeStack (1 <=? numLayers - 1) 'True (numLayers - 1) shape outputShape
   ) =>
   HasForwardReshapeStack 'True 'False numLayers shape inputShape
   where
@@ -268,22 +270,24 @@ instance
       ForwardReshapeStackOutput (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape)
   forwardReshapeStack (ReshapeStackCons block stack) input =
     let reshaped = forward block input
-     in forwardReshapeStack @(1 <=? numLayers - 1) @'True @(numLayers - 1) @shape @(ReshapeF (ReshapeF inputShape shape) inputShape) stack reshaped
+     in forwardReshapeStack @(1 <=? numLayers - 1) @'True @(numLayers - 1) @shape @outputShape stack reshaped
 
 instance
   ( KnownShape inputShape,
     WithShapeC shape (Tensor inputShape -> Tensor (ReshapeF inputShape shape)),
-    WithShapeC inputShape (Tensor (ReshapeF inputShape shape) -> Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)),
-    HasForwardReshapeStack (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape),
-    ForwardReshapeStackOutput (1 <=? numLayers - 1) 'True (numLayers - 1) shape (ReshapeF (ReshapeF inputShape shape) inputShape) ~ Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)
+    WithShapeC inputShape (Tensor (ReshapeF inputShape shape) -> Tensor outputShape),
+    outputShape ~ ReshapeF (ReshapeF inputShape shape) inputShape,
+    outputShape ~ inputShape,
+    HasForwardReshapeStack (1 <=? numLayers - 1) 'True (numLayers - 1) shape outputShape,
+    ForwardReshapeStackOutput (1 <=? numLayers - 1) 'True (numLayers - 1) shape outputShape ~ Tensor outputShape
   ) =>
   HasForwardReshapeStack 'True 'True numLayers shape inputShape
   where
   type
-    ForwardReshapeStackOutput 'True 'True numLayers shape inputShape = Tensor (ReshapeF (ReshapeF inputShape shape) inputShape)
+    ForwardReshapeStackOutput 'True 'True numLayers shape inputShape = Tensor inputShape
   forwardReshapeStack (ReshapeStackCons block stack) input =
     let reshaped = forward block input
-     in forwardReshapeStack @(1 <=? numLayers - 1) @'True @(numLayers - 1) @shape @(ReshapeF (ReshapeF inputShape shape) inputShape) stack reshaped
+     in forwardReshapeStack @(1 <=? numLayers - 1) @'True @(numLayers - 1) @shape @outputShape stack reshaped
 
 instance
   HasForwardReshapeStack (1 <=? numLayers) 'False numLayers shape inputShape =>
