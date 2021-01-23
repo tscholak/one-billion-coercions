@@ -279,17 +279,3 @@ instance
     ForwardOutput (ReshapeStack numLayers shape) (Tensor inputShape) =
       ForwardReshapeStackOutput (1 <=? numLayers) numLayers shape inputShape
   forward = forwardReshapeStack @(1 <=? numLayers) @numLayers @shape @inputShape
-
-test =
-  let input = UnsafeTensor @('Just ['Just 10, 'Just 10]) [10, 10]
-      reshapeStack = initialize @(ReshapeStack 100 ('Just [ 'Just 1, 'Just 100]))
-   in forward reshapeStack input
-
-newtype BoxedStack shape = BoxedStack (ReshapeStack 10 shape)
-
-instance
-  HasForward (ReshapeStack 10 shape) (Tensor inputShape) =>
-  HasForward (BoxedStack shape) (Tensor inputShape) where
-  type ForwardOutput (BoxedStack shape) (Tensor inputShape) =
-    ForwardOutput (ReshapeStack 10 shape) (Tensor inputShape)
-  forward (BoxedStack stack) input = forward stack input
