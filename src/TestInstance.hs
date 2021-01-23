@@ -10,7 +10,7 @@ module TestInstance where
 
 import Coercions (HasForward (..), ReshapeStack, Tensor)
 
-type NumLayers = 1000
+type NumLayers = 1
 
 newtype BoxedStack shape = BoxedStack (ReshapeStack NumLayers shape)
 
