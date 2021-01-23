@@ -23,7 +23,6 @@ import Data.Kind (Type)
 import GHC.TypeLits (KnownNat, natVal, Nat, type (*), type (+), type (-), type (<=?))
 import Type.Errors.Pretty (TypeError, type (%), type (<>))
 import Data.Proxy (Proxy(..))
-import Data.Coerce (coerce)
 
 class HasForward f a where
   type ForwardOutput f a :: Type
@@ -158,7 +157,8 @@ reshape ::
     outputShape ~ ReshapeF inputShape shape
   ) =>
   WithShapeF shape (Tensor inputShape -> Tensor outputShape)
-reshape = withShape @shape @(Tensor inputShape -> Tensor outputShape) $ \_dims input -> coerce input
+reshape = withShape @shape @(Tensor inputShape -> Tensor outputShape) $
+  \dims (UnsafeTensor _) -> UnsafeTensor dims
 
 data ReshapeBlock (shape :: Maybe [Maybe Nat]) where
   ReshapeBlock :: forall shape. [Integer] -> ReshapeBlock shape
