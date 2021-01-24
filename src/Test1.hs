@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -v2 -freduction-depth=0 #-}
 
-module BabySteps1 where
+module Test1 where
 
 import BabySteps (C (..))
 
