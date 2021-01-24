@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -v2 
+{-# OPTIONS_GHC -ddump-ds-preopt
                 -freduction-depth=0
                 -Wno-missing-signatures #-}
 
@@ -8,7 +8,15 @@ module TestForward where
 
 import Coercions (HasForward (..), HasInitialize (..), ReshapeStack, Tensor (..))
 
-type NumLayers = 1000
+type NumLayers = 1
+
+-- 0 : 175
+-- 1 : 2,685
+-- 2 : 2,685 | 2,726
+-- 1000 : 2,685 | 43,644
+
+reshapeStack :: ReshapeStack NumLayers ('Just '[ 'Just 1, 'Just 100])
+reshapeStack = initialize @(ReshapeStack NumLayers ('Just ['Just 1, 'Just 100]))
 
 -- | The number of coercions scales linearly in 'NumLayers':
 --
@@ -24,5 +32,6 @@ type NumLayers = 1000
 --                      = {terms: 42,102, types: 913,339, coercions: 5,039,635, joins: 0/14,031}
 test =
   let input = UnsafeTensor @('Just ['Just 10, 'Just 10]) [10, 10]
-      reshapeStack = initialize @(ReshapeStack NumLayers ('Just ['Just 1, 'Just 100]))
+      -- reshapeStack = initialize @(ReshapeStack NumLayers ('Just ['Just 1, 'Just 100]))
    in forward reshapeStack input
+
