@@ -6,7 +6,7 @@ module BabySteps0 where
 
 import BabySteps (C (..))
 
-type N = 1
+type N = 0
 
-f :: C 'True N => T 'True N
+f :: C 'False N => T 'False N
 f = ()

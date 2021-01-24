@@ -6,7 +6,7 @@ module BabySteps3 where
 
 import BabySteps (C (..))
 
-type N = 1000
+type N = 3
 
 f :: C 'True N => T 'True N
 f = ()
